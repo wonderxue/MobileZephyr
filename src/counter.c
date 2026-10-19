@@ -17,7 +17,7 @@ void my_periodic_task(void *arg1, void *arg2, void *arg3)
     while (1) {
         /* 打印一句话，带上计数方便观察 */
         printk("[Task] Hello Zephyr! Tick: %d\n", count++);
-        
+        count*=2;
         /* 3. 延时 200 毫秒 (等价于 k_sleep(K_MSEC(200))) */
         k_msleep(200);
     }
