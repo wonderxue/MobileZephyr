@@ -35,43 +35,51 @@ jobs:
           cd zephyr-sdk-0.16.5
           ./setup.sh -t arm-zephyr-eabi -h -c
 
-      # ========== 2. 缓存 Zephyr 源码与模块 ==========
+      # ========== 2. 缓存 Zephyr 源码与模块 (修正了上层目录路径) ==========
       - name: Cache West workspace
         id: cache-west
         uses: actions/cache@v4
         with:
           path: |
+            ${{ github.workspace }}/../zephyr
+            ${{ github.workspace }}/../modules
+            ${{ github.workspace }}/../tools
+            ${{ github.workspace }}/../bootloader
             ${{ github.workspace }}/zephyr
             ${{ github.workspace }}/modules
-            ${{ github.workspace }}/tools
-            ${{ github.workspace }}/bootloader
-          key: ${{ runner.os }}-west-${{ hashFiles('west.yml') }}
+          key: ${{ runner.os }}-west-v3-${{ hashFiles('west.yml') }}
           restore-keys: |
-            ${{ runner.os }}-west-
+            ${{ runner.os }}-west-v3-
 
-      # 安装基础工具 (Ubuntu 环境安装极快)
+      # 安装基础工具 (Ubuntu 环境极快)
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build gperf device-tree-compiler ccache python3-pip
 
-      # 只有没命中源码缓存时，才去拉取代码
+      # ========== 3. 初始化 West 并拉取源码 ==========
       - name: West Init & Update
         if: steps.cache-west.outputs.cache-hit != 'true'
         run: |
           pip install west
           west init -l .
-          west update
-          pip install -r zephyr/scripts/requirements.txt
+          # --narrow 和 --depth=1 极大加快下载速度
+          west update --narrow -o=--depth=1
+          
+          # 动态获取 zephyr 目录的绝对路径，完美避开父目录问题
+          ZEPHYR_BASE=$(west list zephyr -f "{abspath}")
+          echo "Zephyr source found at: $ZEPHYR_BASE"
+          pip install -r $ZEPHYR_BASE/scripts/requirements.txt
 
-      # 配置环境变量 (至关重要)
+      # ========== 4. 配置环境变量 ==========
       - name: Set environment variables
         run: |
-          echo "ZEPHYR_BASE=${{ github.workspace }}/zephyr" >> $GITHUB_ENV
+          # 动态获取 Zephyr 目录并写入环境变量
+          echo "ZEPHYR_BASE=$(west list zephyr -f '{abspath}')" >> $GITHUB_ENV
           echo "ZEPHYR_SDK_INSTALL_DIR=${{ github.workspace }}/zephyr-sdk-0.16.5" >> $GITHUB_ENV
           echo "ZEPHYR_TOOLCHAIN_VARIANT=zephyr" >> $GITHUB_ENV
 
-      # ========== 3. 缓存 ccache ==========
+      # ========== 5. 缓存 ccache ==========
       - name: Cache ccache
         uses: actions/cache@v4
         with:
@@ -80,7 +88,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-ccache-
 
-      # ========== 4. 编译与运行 ==========
+      # ========== 6. 编译与运行 ==========
       - name: Build for Raspberry Pi Pico
         run: |
           west build -b rpi_pico . --build-dir build-pico -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
@@ -104,9 +112,10 @@ jobs:
             timeout 3s ./build-sim/zephyr/zephyr.exe 2>&1 || true
             echo '```'
           } > sim-output.log
+          echo "=== Captured output ==="
           cat sim-output.log
 
-      # ========== 5. 更新 README ==========
+      # ========== 7. 更新 README ==========
       - name: Update README with sim output
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
@@ -118,12 +127,19 @@ jobs:
           output = Path("sim-output.log").read_text(encoding="utf-8").strip()
           start, end = "<!-- SIM_OUTPUT_START -->", "<!-- SIM_OUTPUT_END -->"
           if start not in readme or end not in readme:
-              raise SystemExit(f"README.md 缺少占位标记")
+              raise SystemExit(f"README.md 缺少占位标记：{start} / {end}")
           new_readme = re.sub(rf"{re.escape(start)}.*?{re.escape(end)}", f"{start}\n{output}\n{end}", readme, flags=re.DOTALL)
           if new_readme != readme:
               readme_path.write_text(new_readme, encoding="utf-8")
+              print("README.md 已更新。")
+          else:
+              print("README.md 内容未变化。")
           EOF
-          if git diff --quiet README.md; then exit 0; fi
+
+          if git diff --quiet README.md; then
+            echo "README.md 无变化，跳过提交。"
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add README.md
