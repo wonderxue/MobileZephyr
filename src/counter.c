@@ -12,7 +12,7 @@ void my_periodic_task(void *arg1, void *arg2, void *arg3)
     ARG_UNUSED(arg2);
     ARG_UNUSED(arg3);
 
-    int count = 0;
+    int count = 10;
 
     while (1) {
         /* 打印一句话，带上计数方便观察 */
