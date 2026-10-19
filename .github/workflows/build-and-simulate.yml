@@ -1,12 +1,3 @@
-name: Build Pico Firmware & Run Simulator
-
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
-
 jobs:
   build-and-simulate:
     runs-on: ubuntu-latest
@@ -15,16 +6,43 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 1. 缓存 West 工作区（加速 west update）
+      - name: Cache West workspace
+        uses: actions/cache@v4
+        with:
+          path: |
+            .west
+            zephyr
+            modules
+            tools
+            bootloader
+          key: ${{ runner.os }}-west-${{ hashFiles('west.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-west-
+
+      # 2. 缓存 ccache 目录（加速重复编译）
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: ${{ runner.os }}-ccache-${{ hashFiles('west.yml') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-${{ hashFiles('west.yml') }}-
+            ${{ runner.os }}-ccache-
+
+      # 3. Setup Zephyr（不开启内置 ccache，我们手动控制）
       - name: Setup Zephyr
         uses: zephyrproject-rtos/action-zephyr-setup@v1
         with:
           app-path: .
           toolchains: arm-zephyr-eabi
 
-      # ---------- 1. 为真实 Pico 硬件构建 ----------
+      # 4. 构建 Pico，强制使用 ccache
       - name: Build for Raspberry Pi Pico
         run: |
-          west build -b rpi_pico . --build-dir build-pico
+          west build -b rpi_pico . --build-dir build-pico \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
       - name: Upload Pico firmware artifact
         uses: actions/upload-artifact@v4
@@ -32,12 +50,14 @@ jobs:
           name: pico-firmware
           path: build-pico/zephyr/zephyr.uf2
 
-      # ---------- 2. 为 native_sim 构建并运行模拟器 ----------
+      # 5. 构建 native_sim，同样使用 ccache
       - name: Build for native_sim
         run: |
-          west build -b native_sim . --build-dir build-sim
+          west build -b native_sim . --build-dir build-sim \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
-      - name: Run on native_sim and capture output
+      - name: Run on native_sim
         timeout-minutes: 2
         run: |
           echo "=== native_sim output (runs for 3 seconds) ==="
