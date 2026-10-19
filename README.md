@@ -10,7 +10,7 @@
 ```
 $ timeout 3s ./build-sim/zephyr/zephyr.exe
 *** Booting Zephyr OS build 03b1ebca3343 ***
-Hello from Zephyr on Pico! (via CI simulator)
+Hello from Zephyr on Pico!
 [Task] Hello Zephyr! Tick: 0
 [A] Task A is running...
 [Task] Hello Zephyr! Tick: 1
@@ -19,7 +19,7 @@ Hello from Zephyr on Pico! (via CI simulator)
 [B] Task B is waking up Task A.
 [A] Task A is running...
 [Task] Hello Zephyr! Tick: 2
-Hello from Zephyr on Pico! (via CI simulator)
+Hello from Zephyr on Pico!
 [A] Task A is waking up Task B.
 [B] Task B is running...
 [Task] Hello Zephyr! Tick: 3
@@ -30,7 +30,7 @@ Hello from Zephyr on Pico! (via CI simulator)
 [B] Task B is running...
 [B] Task B is waking up Task A.
 [A] Task A is running...
-Hello from Zephyr on Pico! (via CI simulator)
+Hello from Zephyr on Pico!
 [Task] Hello Zephyr! Tick: 5
 [A] Task A is waking up Task B.
 [B] Task B is running...
@@ -40,7 +40,7 @@ Hello from Zephyr on Pico! (via CI simulator)
 [Task] Hello Zephyr! Tick: 7
 [A] Task A is waking up Task B.
 [B] Task B is running...
-Hello from Zephyr on Pico! (via CI simulator)
+Hello from Zephyr on Pico!
 [B] Task B is waking up Task A.
 [A] Task A is running...
 [Task] Hello Zephyr! Tick: 8
@@ -49,7 +49,7 @@ Hello from Zephyr on Pico! (via CI simulator)
 [Task] Hello Zephyr! Tick: 9
 [B] Task B is waking up Task A.
 [A] Task A is running...
-Hello from Zephyr on Pico! (via CI simulator)
+Hello from Zephyr on Pico!
 [Task] Hello Zephyr! Tick: 10
 [A] Task A is waking up Task B.
 [B] Task B is running...
@@ -59,14 +59,16 @@ Hello from Zephyr on Pico! (via CI simulator)
 [A] Task A is waking up Task B.
 [B] Task B is running...
 [Task] Hello Zephyr! Tick: 12
-Hello from Zephyr on Pico! (via CI simulator)
+Hello from Zephyr on Pico!
 [B] Task B is waking up Task A.
 [A] Task A is running...
 [Task] Hello Zephyr! Tick: 13
 [A] Task A is waking up Task B.
 [B] Task B is running...
+[B] Task B is waking up Task A.
+[A] Task A is running...
 
-Stopped at 2.880s
+Stopped at 2.920s
 ```
 <!-- SIM_OUTPUT_END -->
 
