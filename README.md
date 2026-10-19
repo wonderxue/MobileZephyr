@@ -9,7 +9,7 @@
 <!-- SIM_OUTPUT_START -->
 ```
 $ timeout 3s ./build-sim/zephyr/zephyr.exe
-*** Booting Zephyr OS build 03b1ebca3343 ***
+*** Booting Zephyr OS build 5bab0a6c0737 ***
 Hello from Zephyr on Pico!
 [Task] Hello Zephyr! Tick: 100
 [A] Task A is running...
@@ -65,10 +65,8 @@ Hello from Zephyr on Pico!
 [Task] Hello Zephyr! Tick: 113
 [A] Task A is waking up Task B.
 [B] Task B is running...
-[B] Task B is waking up Task A.
-[A] Task A is running...
 
-Stopped at 2.900s
+Stopped at 2.870s
 ```
 <!-- SIM_OUTPUT_END -->
 
