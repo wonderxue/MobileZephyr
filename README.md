@@ -7,7 +7,18 @@
 以下为 GitHub Actions 自动生成的 `native_sim` 运行日志：
 
 <!-- SIM_OUTPUT_START -->
-_尚未生成。等待 CI 运行成功后自动更新。_
+```
+$ timeout 3s ./build-sim/zephyr/zephyr.exe
+*** Booting Zephyr OS build a915b2f12675 ***
+Hello from Zephyr on Pico! (via CI simulator)
+Hello from Zephyr on Pico! (via CI simulator)
+Hello from Zephyr on Pico! (via CI simulator)
+Hello from Zephyr on Pico! (via CI simulator)
+Hello from Zephyr on Pico! (via CI simulator)
+Hello from Zephyr on Pico! (via CI simulator)
+
+Stopped at 2.710s
+```
 <!-- SIM_OUTPUT_END -->
 
 ## 本地构建指令
