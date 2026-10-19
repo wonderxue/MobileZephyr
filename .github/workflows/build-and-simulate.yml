@@ -12,7 +12,8 @@ permissions:
 jobs:
   build-and-simulate:
     runs-on: ubuntu-latest
-    # 核心：直接拉取官方预装好一切的 Docker 镜像
+    
+    # 1. 使用官方预装好一切的 Docker 镜像
     container:
       image: ghcr.io/zephyrproject-rtos/ci:v0.26.5
       options: --user root
@@ -21,16 +22,55 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 1. 仅拉取代码（镜像里有极速网络，20秒搞定）
+      # 2. 缓存 Zephyr 源码和模块 (极速拉取的关键)
+      # 只要 west.yml 没变，直接解压缓存，省去大量的 git clone 时间
+      - name: Cache West Modules
+        id: cache-west
+        uses: actions/cache@v4
+        with:
+          path: |
+            zephyr
+            modules
+            tools
+            .west
+            bootloader
+            mcuboot
+          key: west-modules-${{ hashFiles('west.yml') }}
+          restore-keys: |
+            west-modules-
+
+      # 3. 缓存 ccache (极速编译的关键)
+      # 利用 Zephyr 内置的 ccache 支持，大幅减少重复编译时间
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: /root/.ccache
+          key: ccache-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            ccache-${{ runner.os }}-
+
+      # 4. 环境准备与依赖安装
       - name: West Init & Update
         run: |
-          west init -l .
-          west update --narrow -o=--depth=1
+          # 如果缓存未命中，则初始化并拉取代码
+          if [ "${{ steps.cache-west.outputs.cache-hit }}" != "true" ]; then
+            echo "缓存未命中，正在全量拉取 Zephyr..."
+            west init -l .
+            west update --narrow -o=--depth=1
+          else
+            echo "缓存命中！正在更新 .west 配置..."
+            # 缓存命中时，仍需执行 init 以生成必要的环境文件，但会非常快
+            west init -l . --local
+          fi
+          
+          # 关键：修复缺失的 Python 依赖 (解决 jsonschema 问题)
+          pip install -r zephyr/scripts/requirements.txt
 
-      # 2. 编译 Pico
+      # 5. 编译 Pico 固件 (开启 ccache)
       - name: Build for Raspberry Pi Pico
         run: |
-          west build -b rpi_pico . --build-dir build-pico
+          # 使用 -DCMAKE_C_COMPILER_LAUNCHER=ccache 开启编译器缓存
+          west build -b rpi_pico/rp2040 . --build-dir build-pico -p always -- -DCMAKE_C_COMPILER_LAUNCHER=ccache
 
       - name: Upload Pico firmware artifact
         uses: actions/upload-artifact@v4
@@ -38,11 +78,12 @@ jobs:
           name: pico-firmware
           path: build-pico/zephyr/zephyr.uf2
 
-      # 3. 编译并运行 native_sim
+      # 6. 编译 native_sim (开启 ccache)
       - name: Build for native_sim
         run: |
-          west build -b native_sim . --build-dir build-sim
+          west build -b native_sim . --build-dir build-sim -p always -- -DCMAKE_C_COMPILER_LAUNCHER=ccache
 
+      # 7. 运行 native_sim 并捕获输出
       - name: Run on native_sim and capture output
         timeout-minutes: 2
         run: |
@@ -54,7 +95,7 @@ jobs:
           } > sim-output.log
           cat sim-output.log
 
-      # 4. 更新 README
+      # 8. 更新 README
       - name: Update README with sim output
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
@@ -62,15 +103,21 @@ jobs:
           from pathlib import Path
           import re
           readme_path = Path("README.md")
+          if not readme_path.exists():
+              raise SystemExit("README.md 不存在")
+          
           readme = readme_path.read_text(encoding="utf-8")
           output = Path("sim-output.log").read_text(encoding="utf-8").strip()
           start, end = "<!-- SIM_OUTPUT_START -->", "<!-- SIM_OUTPUT_END -->"
+          
           if start not in readme or end not in readme:
-              raise SystemExit(f"README.md 缺少占位标记")
+              raise SystemExit(f"README.md 缺少占位标记 {start} 或 {end}")
+              
           new_readme = re.sub(rf"{re.escape(start)}.*?{re.escape(end)}", f"{start}\n{output}\n{end}", readme, flags=re.DOTALL)
           if new_readme != readme:
               readme_path.write_text(new_readme, encoding="utf-8")
           EOF
+          
           if git diff --quiet README.md; then exit 0; fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
