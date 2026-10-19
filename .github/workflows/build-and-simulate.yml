@@ -18,7 +18,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ========== 1. 缓存 Zephyr SDK (固定 1.0.0，不再变动) ==========
+      # ========== 1. 缓存 Zephyr SDK ==========
       - name: Cache Zephyr SDK
         id: cache-sdk
         uses: actions/cache@v4
@@ -34,12 +34,11 @@ jobs:
           cd zephyr-sdk-1.0.0
           ./setup.sh -t arm-zephyr-eabi -h -c
 
-      # ========== 2. 终极缓存：包含隐藏的 .west 目录 ==========
+      # ========== 2. 缓存 West workspace (包含 .west) ==========
       - name: Cache West workspace
         id: cache-west
         uses: actions/cache@v4
         with:
-          # 必须带上 .west，这样 west 才知道已经下载过了，不会再去联网查
           path: |
             ${{ github.workspace }}/../.west
             ${{ github.workspace }}/../zephyr
@@ -49,16 +48,17 @@ jobs:
             ${{ github.workspace }}/.west
             ${{ github.workspace }}/zephyr
             ${{ github.workspace }}/modules
-          key: ${{ runner.os }}-west-v6-${{ hashFiles('west.yml') }}
+          key: ${{ runner.os }}-west-v7-${{ hashFiles('west.yml') }}
           restore-keys: |
-            ${{ runner.os }}-west-v6-
+            ${{ runner.os }}-west-v7-
 
+      # ========== 3. 安装依赖 (关键：补充 32 位编译库) ==========
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build gperf device-tree-compiler ccache python3-pip
+          sudo apt-get install -y ninja-build gperf device-tree-compiler ccache python3-pip gcc-multilib g++-multilib
 
-      # ========== 3. 拉取源码 (只有无缓存时才执行) ==========
+      # ========== 4. 拉取源码 (只有无缓存时才执行) ==========
       - name: West Init & Update
         if: steps.cache-west.outputs.cache-hit != 'true'
         run: |
@@ -69,14 +69,14 @@ jobs:
           ZEPHYR_BASE=$(west list zephyr -f "{abspath}")
           pip install -r $ZEPHYR_BASE/scripts/requirements.txt
 
-      # ========== 4. 环境变量 ==========
+      # ========== 5. 环境变量 ==========
       - name: Set environment variables
         run: |
           echo "ZEPHYR_BASE=$(west list zephyr -f '{abspath}')" >> $GITHUB_ENV
           echo "ZEPHYR_SDK_INSTALL_DIR=${{ github.workspace }}/zephyr-sdk-1.0.0" >> $GITHUB_ENV
           echo "ZEPHYR_TOOLCHAIN_VARIANT=zephyr" >> $GITHUB_ENV
 
-      # ========== 5. ccache 缓存 ==========
+      # ========== 6. ccache 缓存 ==========
       - name: Cache ccache
         uses: actions/cache@v4
         with:
@@ -85,7 +85,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-ccache-
 
-      # ========== 6. 编译 ==========
+      # ========== 7. 编译 Pico ==========
       - name: Build for Raspberry Pi Pico
         run: |
           west build -b rpi_pico . --build-dir build-pico -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
@@ -96,6 +96,7 @@ jobs:
           name: pico-firmware
           path: build-pico/zephyr/zephyr.uf2
 
+      # ========== 8. 编译并运行 native_sim ==========
       - name: Build for native_sim
         run: |
           west build -b native_sim . --build-dir build-sim -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
@@ -111,7 +112,7 @@ jobs:
           } > sim-output.log
           cat sim-output.log
 
-      # ========== 7. 更新 README ==========
+      # ========== 9. 更新 README ==========
       - name: Update README with sim output
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
