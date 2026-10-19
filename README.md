@@ -9,15 +9,26 @@
 <!-- SIM_OUTPUT_START -->
 ```
 $ timeout 3s ./build-sim/zephyr/zephyr.exe
-*** Booting Zephyr OS build a915b2f12675 ***
+*** Booting Zephyr OS build 03b1ebca3343 ***
 Hello from Zephyr on Pico! (via CI simulator)
+[Task] Hello Zephyr! Tick: 0
+[Task] Hello Zephyr! Tick: 1
+[Task] Hello Zephyr! Tick: 2
 Hello from Zephyr on Pico! (via CI simulator)
+[Task] Hello Zephyr! Tick: 3
+[Task] Hello Zephyr! Tick: 4
 Hello from Zephyr on Pico! (via CI simulator)
+[Task] Hello Zephyr! Tick: 5
+[Task] Hello Zephyr! Tick: 6
+[Task] Hello Zephyr! Tick: 7
 Hello from Zephyr on Pico! (via CI simulator)
+[Task] Hello Zephyr! Tick: 8
+[Task] Hello Zephyr! Tick: 9
 Hello from Zephyr on Pico! (via CI simulator)
-Hello from Zephyr on Pico! (via CI simulator)
+[Task] Hello Zephyr! Tick: 10
+[Task] Hello Zephyr! Tick: 11
 
-Stopped at 2.710s
+Stopped at 2.390s
 ```
 <!-- SIM_OUTPUT_END -->
 
