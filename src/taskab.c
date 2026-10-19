@@ -14,7 +14,7 @@ void task_a(void *arg1, void *arg2, void *arg3) {
         k_sem_take(&sem_a, K_FOREVER); 
         
         printk("[A] Task A is running...\n");
-        k_msleep(1000); // 模拟工作
+        k_msleep(200); // 模拟工作
         
         printk("[A] Task A is waking up Task B.\n");
         k_sem_give(&sem_b); // 唤醒任务 B
@@ -28,7 +28,7 @@ void task_b(void *arg1, void *arg2, void *arg3) {
         k_sem_take(&sem_b, K_FOREVER);
         
         printk("[B] Task B is running...\n");
-        k_msleep(1000); // 模拟工作
+        k_msleep(100); // 模拟工作
         
         printk("[B] Task B is waking up Task A.\n");
         k_sem_give(&sem_a); // 唤醒任务 A
