@@ -29,8 +29,9 @@ Hello from Zephyr on Pico! (via CI simulator)
 [Task] Hello Zephyr! Tick: 11
 [Task] Hello Zephyr! Tick: 12
 Hello from Zephyr on Pico! (via CI simulator)
+[Task] Hello Zephyr! Tick: 13
 
-Stopped at 2.610s
+Stopped at 2.870s
 ```
 <!-- SIM_OUTPUT_END -->
 
