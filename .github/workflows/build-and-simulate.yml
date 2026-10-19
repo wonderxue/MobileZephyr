@@ -19,7 +19,42 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ---------- 缓存 1：ccache 编译对象 ----------
+      # ---------- 缓存 1：Zephyr SDK 和工具链（解决 Setup Zephyr 慢的核心）----------
+      - name: Cache Zephyr SDK
+        id: cache-zephyr-sdk
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/zephyr-sdk-*
+            /opt/toolchains
+          key: ${{ runner.os }}-zephyr-sdk-0.16.5 # 若官方 SDK 升级，修改此版本号即可刷新缓存
+          restore-keys: |
+            ${{ runner.os }}-zephyr-sdk-
+
+      # ---------- 缓存 2：Python pip 依赖 ----------
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      # ---------- 缓存 3：West workspace 源码 ----------
+      # 注意：不缓存 .west 目录，避免与 action 内部的 west init 冲突
+      - name: Cache West workspace
+        uses: actions/cache@v4
+        with:
+          path: |
+            zephyr
+            modules
+            tools
+            bootloader
+          key: ${{ runner.os }}-west-${{ hashFiles('west.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-west-
+
+      # ---------- 缓存 4：ccache 编译对象 ----------
       - name: Cache ccache
         uses: actions/cache@v4
         with:
@@ -31,21 +66,7 @@ jobs:
             ${{ runner.os }}-ccache-${{ hashFiles('west.yml') }}-
             ${{ runner.os }}-ccache-
 
-      # ---------- 缓存 2：West workspace 源码 ----------
-      # 注意：不缓存 .west 目录，避免与 action 内部的 west init 冲突
-      - name: Cache West workspace
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ github.workspace }}/../zephyr
-            ${{ github.workspace }}/../modules
-            ${{ github.workspace }}/../tools
-            ${{ github.workspace }}/../bootloader
-          key: ${{ runner.os }}-west-${{ hashFiles('west.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-west-
-
-      # ---------- 安装并配置 Zephyr（内置开启 ccache）----------
+      # ---------- 安装并配置 Zephyr（利用上面缓存好的 SDK，迅速通过）----------
       - name: Setup Zephyr
         uses: zephyrproject-rtos/action-zephyr-setup@v1
         with:
