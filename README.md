@@ -62,13 +62,8 @@ Hello from Zephyr on Pico!
 Hello from Zephyr on Pico!
 [B] Task B is waking up Task A.
 [A] Task A is running...
-[Task] Hello Zephyr! Tick: 13
-[A] Task A is waking up Task B.
-[B] Task B is running...
-[B] Task B is waking up Task A.
-[A] Task A is running...
 
-Stopped at 2.920s
+Stopped at 2.670s
 ```
 <!-- SIM_OUTPUT_END -->
 
