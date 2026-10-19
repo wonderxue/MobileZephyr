@@ -11,62 +11,64 @@
 $ timeout 3s ./build-sim/zephyr/zephyr.exe
 *** Booting Zephyr OS build 03b1ebca3343 ***
 Hello from Zephyr on Pico!
-[Task] Hello Zephyr! Tick: 10
+[Task] Hello Zephyr! Tick: 100
 [A] Task A is running...
-[Task] Hello Zephyr! Tick: 11
+[Task] Hello Zephyr! Tick: 101
 [A] Task A is waking up Task B.
 [B] Task B is running...
 [B] Task B is waking up Task A.
 [A] Task A is running...
-[Task] Hello Zephyr! Tick: 12
+[Task] Hello Zephyr! Tick: 102
 Hello from Zephyr on Pico!
 [A] Task A is waking up Task B.
 [B] Task B is running...
-[Task] Hello Zephyr! Tick: 13
+[Task] Hello Zephyr! Tick: 103
 [B] Task B is waking up Task A.
 [A] Task A is running...
-[Task] Hello Zephyr! Tick: 14
+[Task] Hello Zephyr! Tick: 104
 [A] Task A is waking up Task B.
 [B] Task B is running...
 [B] Task B is waking up Task A.
 [A] Task A is running...
 Hello from Zephyr on Pico!
-[Task] Hello Zephyr! Tick: 15
+[Task] Hello Zephyr! Tick: 105
 [A] Task A is waking up Task B.
 [B] Task B is running...
-[Task] Hello Zephyr! Tick: 16
+[Task] Hello Zephyr! Tick: 106
 [B] Task B is waking up Task A.
 [A] Task A is running...
-[Task] Hello Zephyr! Tick: 17
+[Task] Hello Zephyr! Tick: 107
 [A] Task A is waking up Task B.
 [B] Task B is running...
 Hello from Zephyr on Pico!
 [B] Task B is waking up Task A.
 [A] Task A is running...
-[Task] Hello Zephyr! Tick: 18
+[Task] Hello Zephyr! Tick: 108
 [A] Task A is waking up Task B.
 [B] Task B is running...
-[Task] Hello Zephyr! Tick: 19
+[Task] Hello Zephyr! Tick: 109
 [B] Task B is waking up Task A.
 [A] Task A is running...
 Hello from Zephyr on Pico!
-[Task] Hello Zephyr! Tick: 20
+[Task] Hello Zephyr! Tick: 110
 [A] Task A is waking up Task B.
 [B] Task B is running...
 [B] Task B is waking up Task A.
 [A] Task A is running...
-[Task] Hello Zephyr! Tick: 21
+[Task] Hello Zephyr! Tick: 111
 [A] Task A is waking up Task B.
 [B] Task B is running...
-[Task] Hello Zephyr! Tick: 22
+[Task] Hello Zephyr! Tick: 112
 Hello from Zephyr on Pico!
 [B] Task B is waking up Task A.
 [A] Task A is running...
-[Task] Hello Zephyr! Tick: 23
+[Task] Hello Zephyr! Tick: 113
 [A] Task A is waking up Task B.
 [B] Task B is running...
+[B] Task B is waking up Task A.
+[A] Task A is running...
 
-Stopped at 2.830s
+Stopped at 2.900s
 ```
 <!-- SIM_OUTPUT_END -->
 
