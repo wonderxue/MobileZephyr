@@ -4,7 +4,6 @@ on:
   push:
     branches: [ main ]
   pull_request:
-    branches: [ main ]
   workflow_dispatch:
 
 permissions:
@@ -13,82 +12,25 @@ permissions:
 jobs:
   build-and-simulate:
     runs-on: ubuntu-latest
+    # 核心：直接拉取官方预装好一切的 Docker 镜像
+    container:
+      image: ghcr.io/zephyrproject-rtos/ci:v0.26.5
+      options: --user root
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ========== 1. 缓存 Zephyr SDK ==========
-      - name: Cache Zephyr SDK
-        id: cache-sdk
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/zephyr-sdk-1.0.0
-          key: ${{ runner.os }}-zephyr-sdk-1.0.0
-
-      - name: Download Zephyr SDK
-        if: steps.cache-sdk.outputs.cache-hit != 'true'
-        run: |
-          wget https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v1.0.0/zephyr-sdk-1.0.0_linux-x86_64_minimal.tar.xz
-          tar xf zephyr-sdk-1.0.0_linux-x86_64_minimal.tar.xz
-          cd zephyr-sdk-1.0.0
-          ./setup.sh -t arm-zephyr-eabi -h -c
-
-      # ========== 2. 缓存 West workspace (包含 .west) ==========
-      - name: Cache West workspace
-        id: cache-west
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ github.workspace }}/../.west
-            ${{ github.workspace }}/../zephyr
-            ${{ github.workspace }}/../modules
-            ${{ github.workspace }}/../tools
-            ${{ github.workspace }}/../bootloader
-            ${{ github.workspace }}/.west
-            ${{ github.workspace }}/zephyr
-            ${{ github.workspace }}/modules
-          key: ${{ runner.os }}-west-v7-${{ hashFiles('west.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-west-v7-
-
-      # ========== 3. 安装依赖 (关键：补充 32 位编译库) ==========
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ninja-build gperf device-tree-compiler ccache python3-pip gcc-multilib g++-multilib
-
-      # ========== 4. 拉取源码 (只有无缓存时才执行) ==========
+      # 1. 仅拉取代码（镜像里有极速网络，20秒搞定）
       - name: West Init & Update
-        if: steps.cache-west.outputs.cache-hit != 'true'
         run: |
-          pip install west
           west init -l .
           west update --narrow -o=--depth=1
-          
-          ZEPHYR_BASE=$(west list zephyr -f "{abspath}")
-          pip install -r $ZEPHYR_BASE/scripts/requirements.txt
 
-      # ========== 5. 环境变量 ==========
-      - name: Set environment variables
-        run: |
-          echo "ZEPHYR_BASE=$(west list zephyr -f '{abspath}')" >> $GITHUB_ENV
-          echo "ZEPHYR_SDK_INSTALL_DIR=${{ github.workspace }}/zephyr-sdk-1.0.0" >> $GITHUB_ENV
-          echo "ZEPHYR_TOOLCHAIN_VARIANT=zephyr" >> $GITHUB_ENV
-
-      # ========== 6. ccache 缓存 ==========
-      - name: Cache ccache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ccache
-          key: ${{ runner.os }}-ccache-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-ccache-
-
-      # ========== 7. 编译 Pico ==========
+      # 2. 编译 Pico
       - name: Build for Raspberry Pi Pico
         run: |
-          west build -b rpi_pico . --build-dir build-pico -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          west build -b rpi_pico . --build-dir build-pico
 
       - name: Upload Pico firmware artifact
         uses: actions/upload-artifact@v4
@@ -96,10 +38,10 @@ jobs:
           name: pico-firmware
           path: build-pico/zephyr/zephyr.uf2
 
-      # ========== 8. 编译并运行 native_sim ==========
+      # 3. 编译并运行 native_sim
       - name: Build for native_sim
         run: |
-          west build -b native_sim . --build-dir build-sim -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          west build -b native_sim . --build-dir build-sim
 
       - name: Run on native_sim and capture output
         timeout-minutes: 2
@@ -112,7 +54,7 @@ jobs:
           } > sim-output.log
           cat sim-output.log
 
-      # ========== 9. 更新 README ==========
+      # 4. 更新 README
       - name: Update README with sim output
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
@@ -124,19 +66,12 @@ jobs:
           output = Path("sim-output.log").read_text(encoding="utf-8").strip()
           start, end = "<!-- SIM_OUTPUT_START -->", "<!-- SIM_OUTPUT_END -->"
           if start not in readme or end not in readme:
-              raise SystemExit(f"README.md 缺少占位标记：{start} / {end}")
+              raise SystemExit(f"README.md 缺少占位标记")
           new_readme = re.sub(rf"{re.escape(start)}.*?{re.escape(end)}", f"{start}\n{output}\n{end}", readme, flags=re.DOTALL)
           if new_readme != readme:
               readme_path.write_text(new_readme, encoding="utf-8")
-              print("README.md 已更新。")
-          else:
-              print("README.md 内容未变化。")
           EOF
-
-          if git diff --quiet README.md; then
-            echo "README.md 无变化，跳过提交。"
-            exit 0
-          fi
+          if git diff --quiet README.md; then exit 0; fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add README.md
