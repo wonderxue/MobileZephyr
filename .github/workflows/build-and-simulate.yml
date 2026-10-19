@@ -7,6 +7,7 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+# 允许 workflow 用默认 GITHUB_TOKEN 推送 README 更新
 permissions:
   contents: write
 
@@ -18,47 +19,53 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ---------- 修正了路径的 Zephyr SDK 缓存 ----------
+      # ---------- 缓存 1：Zephyr SDK (直接缓存官方 Action 下载的绝对路径) ----------
       - name: Cache Zephyr SDK
         uses: actions/cache@v4
         with:
-          # 官方 action 默认下载在 workspace 的上一层
           path: |
-            ${{ github.workspace }}/../zephyr-sdk-*
             /opt/toolchains
-          key: ${{ runner.os }}-zephyr-sdk-v1
+            ${{ github.workspace }}/../zephyr-sdk-*
+            ~/zephyr-sdk-*
+          key: ${{ runner.os }}-zephyr-sdk-final-v2
 
-      # ---------- 修正了路径的 West workspace 缓存 ----------
+      # ---------- 缓存 2：West workspace (缓存 Zephyr 源码及模块) ----------
       - name: Cache West workspace
         uses: actions/cache@v4
         with:
           path: |
             ${{ github.workspace }}/../zephyr
             ${{ github.workspace }}/../modules
+            ${{ github.workspace }}/../tools
             ${{ github.workspace }}/../bootloader
-          key: ${{ runner.os }}-west-${{ hashFiles('west.yml') }}
+            ${{ github.workspace }}/zephyr
+            ${{ github.workspace }}/modules
+          key: ${{ runner.os }}-west-final-${{ hashFiles('west.yml') }}
           restore-keys: |
-            ${{ runner.os }}-west-
+            ${{ runner.os }}-west-final-
 
-      # ---------- 缓存 pip ----------
+      # ---------- 缓存 3：pip 依赖 ----------
       - name: Cache pip
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
-      # ---------- 缓存 ccache ----------
+      # ---------- 缓存 4：ccache 编译对象 ----------
       - name: Cache ccache
         uses: actions/cache@v4
         with:
           path: |
             ~/.cache/ccache
             ~/.ccache
-          key: ${{ runner.os }}-ccache-${{ github.sha }}
+          key: ${{ runner.os }}-ccache-${{ hashFiles('west.yml') }}-${{ github.sha }}
           restore-keys: |
+            ${{ runner.os }}-ccache-${{ hashFiles('west.yml') }}-
             ${{ runner.os }}-ccache-
 
-      # ---------- 使用官方 Action 搭建环境 ----------
+      # ---------- 安装并配置 Zephyr（内置开启 ccache）----------
       - name: Setup Zephyr
         uses: zephyrproject-rtos/action-zephyr-setup@v1
         with:
@@ -66,7 +73,7 @@ jobs:
           toolchains: arm-zephyr-eabi
           enable-ccache: true
 
-      # ---------- 编译 Pico ----------
+      # ---------- 1. 为真实 Pico 硬件构建 ----------
       - name: Build for Raspberry Pi Pico
         run: |
           west build -b rpi_pico . --build-dir build-pico
@@ -77,7 +84,7 @@ jobs:
           name: pico-firmware
           path: build-pico/zephyr/zephyr.uf2
 
-      # ---------- 编译并运行 native_sim ----------
+      # ---------- 2. 为 native_sim 构建并运行 ----------
       - name: Build for native_sim
         run: |
           west build -b native_sim . --build-dir build-sim
@@ -91,26 +98,44 @@ jobs:
             timeout 3s ./build-sim/zephyr/zephyr.exe 2>&1 || true
             echo '```'
           } > sim-output.log
+          echo "=== Captured output ==="
           cat sim-output.log
 
-      # ---------- 更新 README ----------
+      # ---------- 3. 把模拟输出写回 README（仅 main 分支 push 时）----------
       - name: Update README with sim output
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           python3 - <<'EOF'
           from pathlib import Path
           import re
+
           readme_path = Path("README.md")
           readme = readme_path.read_text(encoding="utf-8")
           output = Path("sim-output.log").read_text(encoding="utf-8").strip()
+
           start, end = "<!-- SIM_OUTPUT_START -->", "<!-- SIM_OUTPUT_END -->"
           if start not in readme or end not in readme:
-              raise SystemExit(f"README.md 缺少占位标记")
-          new_readme = re.sub(rf"{re.escape(start)}.*?{re.escape(end)}", f"{start}\n{output}\n{end}", readme, flags=re.DOTALL)
+              raise SystemExit(f"README.md 缺少占位标记：{start} / {end}")
+
+          new_readme = re.sub(
+              rf"{re.escape(start)}.*?{re.escape(end)}",
+              f"{start}\n{output}\n{end}",
+              readme,
+              flags=re.DOTALL,
+          )
+
           if new_readme != readme:
               readme_path.write_text(new_readme, encoding="utf-8")
+              print("README.md 已更新。")
+          else:
+              print("README.md 内容未变化。")
           EOF
-          if git diff --quiet README.md; then exit 0; fi
+
+          if git diff --quiet README.md; then
+            echo "README.md 无变化，跳过提交。"
+            exit 0
+          fi
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add README.md
