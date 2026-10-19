@@ -1,0 +1,45 @@
+name: Build Pico Firmware & Run Simulator
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-simulate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Zephyr
+        uses: zephyrproject-rtos/action-zephyr-setup@v1
+        with:
+          app-path: .
+          toolchains: arm-zephyr-eabi
+
+      # ---------- 1. 为真实 Pico 硬件构建 ----------
+      - name: Build for Raspberry Pi Pico
+        run: |
+          west build -b rpi_pico . --build-dir build-pico
+
+      - name: Upload Pico firmware artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pico-firmware
+          path: build-pico/zephyr/zephyr.uf2
+
+      # ---------- 2. 为 native_sim 构建并运行模拟器 ----------
+      - name: Build for native_sim
+        run: |
+          west build -b native_sim . --build-dir build-sim
+
+      - name: Run on native_sim and capture output
+        timeout-minutes: 2
+        run: |
+          echo "=== native_sim output (runs for 3 seconds) ==="
+          timeout 3s ./build-sim/zephyr/zephyr.exe || true
+          echo "=== end of simulated output ==="
