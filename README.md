@@ -14,29 +14,59 @@ Hello from Zephyr on Pico! (via CI simulator)
 [Task] Hello Zephyr! Tick: 0
 [A] Task A is running...
 [Task] Hello Zephyr! Tick: 1
+[A] Task A is waking up Task B.
+[B] Task B is running...
+[B] Task B is waking up Task A.
+[A] Task A is running...
 [Task] Hello Zephyr! Tick: 2
 Hello from Zephyr on Pico! (via CI simulator)
+[A] Task A is waking up Task B.
+[B] Task B is running...
 [Task] Hello Zephyr! Tick: 3
+[B] Task B is waking up Task A.
+[A] Task A is running...
 [Task] Hello Zephyr! Tick: 4
 [A] Task A is waking up Task B.
 [B] Task B is running...
+[B] Task B is waking up Task A.
+[A] Task A is running...
 Hello from Zephyr on Pico! (via CI simulator)
 [Task] Hello Zephyr! Tick: 5
+[A] Task A is waking up Task B.
+[B] Task B is running...
 [Task] Hello Zephyr! Tick: 6
+[B] Task B is waking up Task A.
+[A] Task A is running...
 [Task] Hello Zephyr! Tick: 7
+[A] Task A is waking up Task B.
+[B] Task B is running...
 Hello from Zephyr on Pico! (via CI simulator)
+[B] Task B is waking up Task A.
+[A] Task A is running...
 [Task] Hello Zephyr! Tick: 8
+[A] Task A is waking up Task B.
+[B] Task B is running...
 [Task] Hello Zephyr! Tick: 9
 [B] Task B is waking up Task A.
 [A] Task A is running...
 Hello from Zephyr on Pico! (via CI simulator)
 [Task] Hello Zephyr! Tick: 10
+[A] Task A is waking up Task B.
+[B] Task B is running...
+[B] Task B is waking up Task A.
+[A] Task A is running...
 [Task] Hello Zephyr! Tick: 11
+[A] Task A is waking up Task B.
+[B] Task B is running...
 [Task] Hello Zephyr! Tick: 12
 Hello from Zephyr on Pico! (via CI simulator)
+[B] Task B is waking up Task A.
+[A] Task A is running...
 [Task] Hello Zephyr! Tick: 13
+[A] Task A is waking up Task B.
+[B] Task B is running...
 
-Stopped at 2.920s
+Stopped at 2.810s
 ```
 <!-- SIM_OUTPUT_END -->
 
